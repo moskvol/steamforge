@@ -1,0 +1,9 @@
+﻿/Output/
+/publish/
+/publish_win/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+.idea/
