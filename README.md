@@ -25,4 +25,4 @@ dotnet run
     
 - **Разработчик**: [moskvol](https://github.com/moskvol)
 - **Портфолио**: [moskvol.github.io](https://moskvol.github.io)
-- **Страница проекта**: [moskvol.github.io/steamforge](https://moskvol.github.io/steamforge)
+- **Страница проекта**: [steamforge-dev.github.io/](https://steamforge-dev.github.io/)
