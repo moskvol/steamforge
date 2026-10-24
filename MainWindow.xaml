@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SteamForge"
-        Title="[SteamForge 2.0] • Менеджер Steam Манифестов" 
+        Title="[SteamForge 2.0] • Менеджер Steam &amp; OpenSteamTool" 
         Height="820" Width="1280" MinHeight="680" MinWidth="1040"
         WindowStartupLocation="CenterScreen"
         Background="{Binding WindowBg}" Foreground="{Binding TextPrimary}" FontFamily="{Binding CurrentFont}">
@@ -12,7 +12,6 @@
         <local:EnabledToOpacityConverter x:Key="EnabledToOpacity"/>
         <local:EnabledToColorConverter x:Key="EnabledToColor"/>
 
-        <!-- Стиль интерактивных кнопок с корректной подсветкой и обводкой при наведении -->
         <Style x:Key="ModernBtn" TargetType="Button">
             <Setter Property="Foreground" Value="{Binding TextPrimary}"/>
             <Setter Property="Background" Value="#101827"/>
@@ -61,7 +60,6 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Матричный дождь (активен только в режиме хакера) -->
         <Canvas x:Name="MatrixCanvas" Opacity="0.18" IsHitTestVisible="False"
                 Visibility="{Binding IsHackerMode, Converter={StaticResource BoolToVis}}"/>
 
@@ -71,7 +69,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Боковое меню -->
+            <!-- Левая колонка -->
             <Border Grid.Column="0" Background="{Binding SidebarBg}" BorderBrush="{Binding BorderBrushColor}" BorderThickness="0,0,1,0" Padding="18">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -82,20 +80,17 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Заголовок -->
                     <StackPanel Grid.Row="0" Margin="0,0,0,16">
                         <Border BorderBrush="{Binding AccentColor}" BorderThickness="1.5" Background="#061828" Padding="10,6" CornerRadius="6">
                             <TextBlock Text="[ STEAMFORGE 2.0 ]" FontWeight="Black" FontSize="14" Foreground="{Binding AccentColor}" HorizontalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="Редакция: NextGen Suite" FontSize="10" Foreground="#64748b" Margin="4,4,0,0"/>
+                        <TextBlock Text="Интеграция OpenSteamTool" FontSize="10" Foreground="#64748b" Margin="4,4,0,0"/>
                     </StackPanel>
 
-                    <!-- Переключатель тем -->
                     <Button Grid.Row="1" Command="{Binding ToggleThemeCommand}" 
                             Content="{Binding ThemeToggleTitle}" Style="{StaticResource ModernBtn}"
                             Background="#1e293b" Margin="0,0,0,16" Padding="10,8"/>
 
-                    <!-- Поиск / Создание -->
                     <Border Grid.Row="2" Background="#080e1a" CornerRadius="6" Padding="12" Margin="0,0,0,16" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1">
                         <StackPanel>
                             <TextBlock Text="ПОИСК ИГРЫ ИЛИ APPID:" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
@@ -117,17 +112,16 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Навигация -->
                     <StackPanel Grid.Row="3">
                         <TextBlock Text="// РАЗДЕЛЫ" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="4,0,0,8"/>
                         <Button Command="{Binding ShowLibraryCommand}" Content="📚 Библиотека .lua" Style="{StaticResource NavTabBtn}"/>
                         <Button Command="{Binding ShowStoreSearchCommand}" Content="🌐 Магазин Steam (Поиск)" Style="{StaticResource NavTabBtn}"/>
+                        <Button Command="{Binding ShowOpenSteamToolCommand}" Content="🛡️ Модуль OpenSteamTool" Style="{StaticResource NavTabBtn}"/>
                         <Button Command="{Binding ShowSettingsCommand}" Content="⚙️ Настройки и ссылки" Style="{StaticResource NavTabBtn}"/>
                         <Button Command="{Binding CreateBackupCommand}" Content="📦 Создать ZIP бэкап" Style="{StaticResource NavTabBtn}"/>
                         <Button Command="{Binding RefreshCommand}" Content="🔄 Обновить список" Style="{StaticResource NavTabBtn}"/>
                     </StackPanel>
 
-                    <!-- Перезапуск Steam -->
                     <Border Grid.Row="4" Background="#080e1a" CornerRadius="6" Padding="10" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1">
                         <StackPanel>
                             <TextBlock Text="// УПРАВЛЕНИЕ STEAM" FontSize="9" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
@@ -137,7 +131,7 @@
                 </Grid>
             </Border>
 
-            <!-- Основная область -->
+            <!-- Основная панель -->
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="56"/>
@@ -145,7 +139,6 @@
                     <RowDefinition Height="30"/>
                 </Grid.RowDefinitions>
 
-                <!-- Верхний фильтр -->
                 <Border Grid.Row="0" Background="#080d19" BorderBrush="{Binding BorderBrushColor}" BorderThickness="0,0,0,1" Padding="20,0">
                     <Grid VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
@@ -159,7 +152,7 @@
                     </Grid>
                 </Border>
 
-                <!-- ЭКРАН 1: Сетка карточек -->
+                <!-- Вкладка 1: Карточки игр -->
                 <ScrollViewer Grid.Row="1" Padding="24" Visibility="{Binding IsLibraryView, Converter={StaticResource BoolToVis}}">
                     <ItemsControl ItemsSource="{Binding DisplayedGames}">
                         <ItemsControl.ItemsPanel>
@@ -193,8 +186,6 @@
                                             <StackPanel Width="260">
                                                 <Grid Height="125">
                                                     <Image Source="{Binding Poster}" Stretch="UniformToFill"/>
-                                                    
-                                                    <!-- Индикатор статуса ВКЛ / ВЫКЛ -->
                                                     <Border Background="#ea020502" 
                                                             BorderBrush="{Binding IsEnabled, Converter={StaticResource EnabledToColor}}" 
                                                             BorderThickness="1.5" CornerRadius="4" Padding="8,3" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top">
@@ -215,7 +206,6 @@
                                             </StackPanel>
                                         </Button>
 
-                                        <!-- Кнопка удаления -->
                                         <Button Command="{Binding DataContext.DeleteManifestCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}" Content="✕" Width="24" Height="24"
                                                 Background="#220000" Foreground="#ff3333" BorderBrush="#ff3333"
@@ -228,7 +218,7 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- ЭКРАН 2: Поиск в магазине -->
+                <!-- Вкладка 2: Steam Store -->
                 <ScrollViewer Grid.Row="1" Padding="24" Visibility="{Binding IsStoreSearchView, Converter={StaticResource BoolToVis}}">
                     <StackPanel>
                         <TextBlock Text="// РЕЗУЛЬТАТЫ ПОИСКА В STEAM STORE" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,14"/>
@@ -266,21 +256,78 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ЭКРАН 3: Настройки -->
-                <ScrollViewer Grid.Row="1" Padding="24" Visibility="{Binding IsSettingsView, Converter={StaticResource BoolToVis}}">
-                    <StackPanel MaxWidth="760" HorizontalAlignment="Left">
-                        
-                        <TextBlock Text="// СТИЛЬ И ТЕМА ИНТЕРФЕЙСА" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
-                        <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,20">
-                            <StackPanel>
-                                <TextBlock Text="Выберите визуальное оформление:" FontSize="13" Foreground="{Binding TextPrimary}" Margin="0,0,0,10"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Command="{Binding ToggleThemeCommand}" Content="🔄 Переключить стиль (Легаси / Хакер)" Style="{StaticResource ModernBtn}" Background="{Binding AccentColor}" Foreground="#000000"/>
+                <!-- Вкладка 3: Панель OpenSteamTool -->
+                <ScrollViewer Grid.Row="1" Padding="24" Visibility="{Binding IsOpenSteamToolView, Converter={StaticResource BoolToVis}}">
+                    <StackPanel MaxWidth="800" HorizontalAlignment="Left">
+                        <Border Background="{Binding CardBg}" CornerRadius="8" Padding="16" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="ИНТЕГРАЦИЯ OPENSTEAMTOOL" FontSize="11" FontWeight="Bold" Foreground="#64748b"/>
+                                    <TextBlock Text="{Binding OpenSteamToolStatus}" FontSize="16" FontWeight="Black" Foreground="{Binding AccentColor}" Margin="0,4,0,4"/>
+                                    <TextBlock Text="Открытое решение для манифестов и эмуляции без закрытых сервисов." FontSize="11" Foreground="#94a3b8"/>
                                 </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Command="{Binding InstallOpenSteamToolCommand}" Content="⚡ Инициализировать" Style="{StaticResource ModernBtn}" Background="{Binding AccentColor}" Foreground="#000000" Margin="0,0,8,0"/>
+                                    <Button Command="{Binding UninstallOpenSteamToolCommand}" Content="🗑️ Очистить файлы" Style="{StaticResource ModernBtn}" Background="#3b0707" Foreground="#ef4444"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="// ПАРАМЕТРЫ OPENSTEAMTOOL.TOML" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,8"/>
+                        <Border Background="{Binding CardBg}" CornerRadius="8" Padding="16" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,20">
+                            <StackPanel>
+                                <CheckBox IsChecked="{Binding EnableOnlineFix}" Foreground="{Binding TextPrimary}" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <TextBlock Text="Флаг -onlinefix (мультиплеер)" FontWeight="Bold" FontSize="13"/>
+                                        <TextBlock Text="Запускает клиент в связке с фиксами сетевой игры (AppID 480)." FontSize="10" Foreground="#64748b"/>
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Уровень логирования (log level):" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBox Grid.Column="1" Text="{Binding LogLevel, UpdateSourceTrigger=PropertyChanged}" 
+                                             Background="#030712" Foreground="{Binding TextPrimary}" BorderBrush="{Binding BorderBrushColor}" Padding="8,4" FontSize="12"/>
+                                </Grid>
+
+                                <Button Command="{Binding SaveOstConfigCommand}" Content="💾 Сохранить opensteamtool.toml" Style="{StaticResource ModernBtn}" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
 
-                        <TextBlock Text="// ПУТЬ К ПАПКЕ STEAM" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
+                        <TextBlock Text="// РЕСУРСЫ OPENSTEAMTOOL" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,8"/>
+                        <Border Background="{Binding CardBg}" CornerRadius="8" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5">
+                            <Grid>
+                                <StackPanel HorizontalAlignment="Left">
+                                    <TextBlock Text="GitHub-репозиторий проекта" FontSize="13" FontWeight="Bold" Foreground="{Binding TextPrimary}"/>
+                                    <TextBlock Text="github.com/OpenSteam001/OpenSteamTool" FontSize="10" Foreground="{Binding AccentColor}"/>
+                                </StackPanel>
+                                <Button Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/OpenSteam001/OpenSteamTool" Content="Открыть GitHub" Style="{StaticResource ModernBtn}" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Вкладка 4: Настройки -->
+                <ScrollViewer Grid.Row="1" Padding="24" Visibility="{Binding IsSettingsView, Converter={StaticResource BoolToVis}}">
+                    <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+                        <TextBlock Text="// ОФОРМЛЕНИЕ" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
+                        <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="Текущая цветовая палитра:" FontSize="13" Foreground="{Binding TextPrimary}" Margin="0,0,0,10"/>
+                                <Button Command="{Binding ToggleThemeCommand}" Content="🔄 Переключить стиль (Легаси / Хакер)" Style="{StaticResource ModernBtn}" Background="{Binding AccentColor}" Foreground="#000000" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="// ДИРЕКТОРИЯ STEAM" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
                         <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,20">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -296,54 +343,23 @@
                                              Background="#030712" Foreground="{Binding TextPrimary}" BorderBrush="{Binding BorderBrushColor}" Padding="8,6" Margin="0,0,8,0"/>
                                     <Button Grid.Column="1" Command="{Binding BrowseSteamPathCommand}" Content="📁 Обзор..." Style="{StaticResource ModernBtn}"/>
                                 </Grid>
-                                <TextBlock Grid.Row="1" Text="Папка манифестов: steamapps\stplug-in\" FontSize="10" Foreground="{Binding AccentColor}" Margin="0,6,0,0"/>
-                            </Grid>
-                        </Border>
-
-                        <TextBlock Text="// РЕСУРСЫ И ССЫЛКИ ПРОЕКТА" FontSize="11" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
-                        <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,10">
-                            <Grid>
-                                <StackPanel HorizontalAlignment="Left">
-                                    <TextBlock Text="🌐 Официальный сайт SteamForge" FontSize="13" FontWeight="Bold" Foreground="{Binding TextPrimary}"/>
-                                    <TextBlock Text="moskvol.github.io/steamforge" FontSize="10" Foreground="{Binding AccentColor}"/>
-                                </StackPanel>
-                                <Button Command="{Binding OpenUrlCommand}" CommandParameter="https://moskvol.github.io/steamforge" Content="Перейти" Style="{StaticResource ModernBtn}" HorizontalAlignment="Right"/>
-                            </Grid>
-                        </Border>
-
-                        <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5" Margin="0,0,0,10">
-                            <Grid>
-                                <StackPanel HorizontalAlignment="Left">
-                                    <TextBlock Text="🚀 Личный сайт автора" FontSize="13" FontWeight="Bold" Foreground="{Binding TextPrimary}"/>
-                                    <TextBlock Text="moskvol.github.io" FontSize="10" Foreground="{Binding AccentColor}"/>
-                                </StackPanel>
-                                <Button Command="{Binding OpenUrlCommand}" CommandParameter="https://moskvol.github.io" Content="Открыть" Style="{StaticResource ModernBtn}" HorizontalAlignment="Right"/>
-                            </Grid>
-                        </Border>
-
-                        <Border Background="{Binding CardBg}" CornerRadius="6" Padding="14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1.5">
-                            <Grid>
-                                <StackPanel HorizontalAlignment="Left">
-                                    <TextBlock Text="🐙 GitHub профиль" FontSize="13" FontWeight="Bold" Foreground="{Binding TextPrimary}"/>
-                                    <TextBlock Text="github.com/moskvol" FontSize="10" Foreground="{Binding AccentColor}"/>
-                                </StackPanel>
-                                <Button Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/moskvol" Content="GitHub" Style="{StaticResource ModernBtn}" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Row="1" Text="Каталоги скриптов: steamapps\stplug-in\ и config\lua\" FontSize="10" Foreground="{Binding AccentColor}" Margin="0,6,0,0"/>
                             </Grid>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- Статус бар -->
+                <!-- Нижняя полоса -->
                 <Border Grid.Row="2" Background="#060a14" BorderBrush="{Binding BorderBrushColor}" BorderThickness="0,1,0,0" Padding="16,0">
                     <Grid VerticalAlignment="Center">
                         <TextBlock Text="{Binding StatusText}" FontSize="10" Foreground="{Binding AccentColor}" HorizontalAlignment="Left"/>
-                        <TextBlock Text="● Система активна" FontSize="10" Foreground="{Binding AccentColor}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                        <TextBlock Text="● OpenSteamTool Ready" FontSize="10" Foreground="{Binding AccentColor}" FontWeight="Bold" HorizontalAlignment="Right"/>
                     </Grid>
                 </Border>
             </Grid>
         </Grid>
 
-        <!-- Модальное окно управления игрой -->
+        <!-- Модалка игры -->
         <Border Background="#ea010401" Visibility="{Binding IsGameMatrixOpen, Converter={StaticResource BoolToVis}}">
             <Border Background="{Binding CardBg}" CornerRadius="8" BorderBrush="{Binding AccentColor}" BorderThickness="1.5" Width="720" MaxHeight="720" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="20">
                 <Grid>
@@ -368,7 +384,6 @@
                         <Button Command="{Binding SwitchToLuaTab}" Content="📝 Редактор Lua" Style="{StaticResource ModernBtn}"/>
                     </StackPanel>
 
-                    <!-- Вкладка 1: DLC -->
                     <Border Grid.Row="2" Background="#030712" CornerRadius="4" Padding="10" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1" Margin="0,0,0,14" Visibility="{Binding IsMatrixDlcTab, Converter={StaticResource BoolToVis}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding SelectedGame.DlcList}">
@@ -383,11 +398,10 @@
                         </ScrollViewer>
                     </Border>
 
-                    <!-- Вкладка 2: Цены в регионах -->
                     <Border Grid.Row="2" Background="#030712" CornerRadius="4" Padding="10" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1" Margin="0,0,0,14" Visibility="{Binding IsMatrixPricesTab, Converter={StaticResource BoolToVis}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Text="// СТОИМОСТЬ В РАЗНЫХ РЕГИОНАХ STEAM STORE" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,8"/>
+                                <TextBlock Text="// ЦЕНЫ В РЕГИОНАХ STEAM STORE" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,8"/>
                                 <ItemsControl ItemsSource="{Binding SelectedGame.RegionalPrices}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -407,7 +421,6 @@
                         </ScrollViewer>
                     </Border>
 
-                    <!-- Вкладка 3: Редактор Lua -->
                     <Border Grid.Row="2" Background="#030712" CornerRadius="4" Padding="8" BorderBrush="{Binding BorderBrushColor}" BorderThickness="1" Margin="0,0,0,14" Visibility="{Binding IsMatrixLuaTab, Converter={StaticResource BoolToVis}}">
                         <TextBox Text="{Binding RawLuaContent, UpdateSourceTrigger=PropertyChanged}" 
                                  Background="Transparent" Foreground="{Binding AccentColor}" BorderThickness="0" 
@@ -415,7 +428,6 @@
                                  VerticalScrollBarVisibility="Auto"/>
                     </Border>
 
-                    <!-- Кнопки действий -->
                     <StackPanel Grid.Row="3">
                         <Grid Margin="0,0,0,6">
                             <Grid.ColumnDefinitions>
@@ -431,7 +443,6 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <!-- Динамическая кнопка переключения статуса -->
                             <Button Grid.Column="0" Command="{Binding ToggleManifestStateCommand}" 
                                     Content="{Binding SelectedGame.ToggleActionText}" 
                                     Style="{StaticResource ModernBtn}" Margin="0,0,3,0"/>
@@ -444,7 +455,7 @@
             </Border>
         </Border>
 
-        <!-- Экран загрузки -->
+        <!-- Загрузчик -->
         <Border Background="#f8010401" Visibility="{Binding IsBooting, Converter={StaticResource BoolToVis}}">
             <Border BorderBrush="{Binding AccentColor}" BorderThickness="1.5" Background="#020803" Width="680" Height="420" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24">
                 <Grid>

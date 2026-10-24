@@ -226,6 +226,11 @@ namespace SteamForge
         private string _rawLuaContent = "";
         private int _matrixTab = 0;
 
+        private bool _isOpenSteamToolInstalled;
+        private string _openSteamToolStatus = "Проверка...";
+        private bool _enableOnlineFix;
+        private string _logLevel = "info";
+
         private bool _isHackerMode = true;
         private SolidColorBrush _windowBg = new(Color.FromRgb(2, 5, 2));
         private SolidColorBrush _sidebarBg = new(Color.FromArgb(234, 2, 8, 3));
@@ -254,6 +259,7 @@ namespace SteamForge
         {
             ApplyTheme();
             DetectSteamPath();
+            CheckOpenSteamToolStatus();
             ScanLuaManifests();
         }
 
@@ -278,6 +284,30 @@ namespace SteamForge
         public SolidColorBrush TextPrimary { get => _textPrimary; set { _textPrimary = value; OnPropertyChanged(); } }
         public SolidColorBrush BorderBrushColor { get => _borderBrush; set { _borderBrush = value; OnPropertyChanged(); } }
         public FontFamily CurrentFont { get => _currentFont; set { _currentFont = value; OnPropertyChanged(); } }
+
+        public bool IsOpenSteamToolInstalled
+        {
+            get => _isOpenSteamToolInstalled;
+            set { _isOpenSteamToolInstalled = value; OnPropertyChanged(); }
+        }
+
+        public string OpenSteamToolStatus
+        {
+            get => _openSteamToolStatus;
+            set { _openSteamToolStatus = value; OnPropertyChanged(); }
+        }
+
+        public bool EnableOnlineFix
+        {
+            get => _enableOnlineFix;
+            set { _enableOnlineFix = value; OnPropertyChanged(); }
+        }
+
+        public string LogLevel
+        {
+            get => _logLevel;
+            set { _logLevel = value; OnPropertyChanged(); }
+        }
 
         public void ApplyTheme()
         {
@@ -334,10 +364,9 @@ namespace SteamForge
             string[] logs =
             {
                 ">> Инициализация ядра SteamForge 2.0...",
-                ">> Выделение буферов памяти: Успешно",
-                ">> Сканирование реестра Valve Steam...",
-                ">> Папка плагинов stplug-in подключена",
-                ">> Загрузка манифестов и запуск интерфейса...",
+                ">> Проверка модуля OpenSteamTool...",
+                ">> Инициализация хуков и API Valve...",
+                ">> Сканирование манифестов stplug-in и config/lua...",
                 ">> СИСТЕМА ГОТОВА К РАБОТЕ!"
             };
 
@@ -345,10 +374,10 @@ namespace SteamForge
             {
                 BootLog += logs[i] + "\n";
                 BootProgress = (int)(((i + 1) / (float)logs.Length) * 100);
-                await Task.Delay(160);
+                await Task.Delay(130);
             }
 
-            await Task.Delay(300);
+            await Task.Delay(200);
             IsBooting = false;
         }
 
@@ -361,13 +390,15 @@ namespace SteamForge
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsLibraryView));
                 OnPropertyChanged(nameof(IsStoreSearchView));
+                OnPropertyChanged(nameof(IsOpenSteamToolView));
                 OnPropertyChanged(nameof(IsSettingsView));
             }
         }
 
         public bool IsLibraryView => CurrentViewIndex == 0;
         public bool IsStoreSearchView => CurrentViewIndex == 1;
-        public bool IsSettingsView => CurrentViewIndex == 2;
+        public bool IsOpenSteamToolView => CurrentViewIndex == 2;
+        public bool IsSettingsView => CurrentViewIndex == 3;
 
         public int MatrixTab
         {
@@ -428,6 +459,7 @@ namespace SteamForge
             {
                 _steamPath = value;
                 OnPropertyChanged();
+                CheckOpenSteamToolStatus();
                 ScanLuaManifests();
             }
         }
@@ -461,7 +493,42 @@ namespace SteamForge
             SteamPath = @"C:\Program Files (x86)\Steam";
         }
 
-        public string GetPluginDirectory() => Path.Combine(SteamPath, "steamapps", "stplug-in");
+        public void CheckOpenSteamToolStatus()
+        {
+            if (string.IsNullOrWhiteSpace(SteamPath) || !Directory.Exists(SteamPath))
+            {
+                IsOpenSteamToolInstalled = false;
+                OpenSteamToolStatus = "Папка Steam не найдена";
+                return;
+            }
+
+            string ostDll = Path.Combine(SteamPath, "OpenSteamTool.dll");
+            string xinputDll = Path.Combine(SteamPath, "xinput1_4.dll");
+            string dwmDll = Path.Combine(SteamPath, "dwmapi.dll");
+            string versionDll = Path.Combine(SteamPath, "version.dll");
+
+            if (File.Exists(ostDll) || File.Exists(xinputDll) || File.Exists(dwmDll) || File.Exists(versionDll))
+            {
+                IsOpenSteamToolInstalled = true;
+                OpenSteamToolStatus = "УСТАНОВЛЕН И АКТИВЕН (Библиотеки подключены)";
+            }
+            else
+            {
+                IsOpenSteamToolInstalled = false;
+                OpenSteamToolStatus = "НЕ УСТАНОВЛЕН (Файлы хука отсутствуют)";
+            }
+        }
+
+        public string GetPluginDirectory()
+        {
+            string ostDir = Path.Combine(SteamPath, "config", "lua");
+            string legacyDir = Path.Combine(SteamPath, "steamapps", "stplug-in");
+
+            if (Directory.Exists(ostDir)) return ostDir;
+            if (!Directory.Exists(legacyDir)) Directory.CreateDirectory(legacyDir);
+            return legacyDir;
+        }
+
         public string GetSteamAppsDirectory() => Path.Combine(SteamPath, "steamapps");
 
         public void ScanLuaManifests()
@@ -471,11 +538,23 @@ namespace SteamForge
                 AllGames.Clear();
                 DisplayedGames.Clear();
 
-                string pluginDir = GetPluginDirectory();
-                if (!Directory.Exists(pluginDir)) Directory.CreateDirectory(pluginDir);
+                var searchDirs = new List<string>
+                {
+                    Path.Combine(SteamPath, "steamapps", "stplug-in"),
+                    Path.Combine(SteamPath, "config", "lua"),
+                    Path.Combine(SteamPath, "OpenSteamTool", "lua")
+                };
 
-                var files = Directory.GetFiles(pluginDir, "*.lua*");
-                StatusText = $"[Сканер] Найдено манифестов: {files.Length}";
+                var files = new List<string>();
+                foreach (var d in searchDirs)
+                {
+                    if (Directory.Exists(d))
+                    {
+                        files.AddRange(Directory.GetFiles(d, "*.lua*"));
+                    }
+                }
+
+                StatusText = $"[Сканер] Найдено манифестов: {files.Count}";
 
                 foreach (var file in files)
                 {
@@ -752,11 +831,98 @@ $@"""AppState""
             }
         });
 
+        public RelayCommand InstallOpenSteamToolCommand => new(async () =>
+        {
+            try
+            {
+                string targetDir = SteamPath;
+                if (!Directory.Exists(targetDir))
+                {
+                    MessageBox.Show("Папка Steam не найдена! Укажите путь в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                string luaDir = Path.Combine(targetDir, "config", "lua");
+                if (!Directory.Exists(luaDir)) Directory.CreateDirectory(luaDir);
+
+                string tomlPath = Path.Combine(targetDir, "opensteamtool.toml");
+                string tomlContent = 
+$@"[log]
+level = ""{LogLevel}""
+
+[manifest]
+remote_source = ""jsdelivr""
+
+[features]
+family_sharing_bypass = true
+onlinefix = {(EnableOnlineFix ? "true" : "false")}
+";
+                await File.WriteAllTextAsync(tomlPath, tomlContent);
+
+                CheckOpenSteamToolStatus();
+                StatusText = "[OpenSteamTool] Директория config/lua и opensteamtool.toml настроены";
+                MessageBox.Show("OpenSteamTool подготовлен!\nПапка скриптов: Steam\\config\\lua\\\nКонфиг: opensteamtool.toml", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"[Ошибка OpenSteamTool] {ex.Message}";
+            }
+        });
+
+        public RelayCommand UninstallOpenSteamToolCommand => new(() =>
+        {
+            try
+            {
+                var res = MessageBox.Show("Удалить компоненты OpenSteamTool из директории Steam?", "Удаление", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (res != MessageBoxResult.Yes) return;
+
+                string[] files = { "OpenSteamTool.dll", "xinput1_4.dll", "dwmapi.dll", "version.dll", "opensteamtool.toml" };
+                foreach (var f in files)
+                {
+                    string p = Path.Combine(SteamPath, f);
+                    if (File.Exists(p)) File.Delete(p);
+                }
+
+                CheckOpenSteamToolStatus();
+                StatusText = "[OpenSteamTool] Компоненты удалены";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"[Ошибка удаления] {ex.Message}";
+            }
+        });
+
+        public RelayCommand SaveOstConfigCommand => new(async () =>
+        {
+            try
+            {
+                string tomlPath = Path.Combine(SteamPath, "opensteamtool.toml");
+                string tomlContent = 
+$@"[log]
+level = ""{LogLevel}""
+
+[manifest]
+remote_source = ""jsdelivr""
+
+[features]
+family_sharing_bypass = true
+onlinefix = {(EnableOnlineFix ? "true" : "false")}
+";
+                await File.WriteAllTextAsync(tomlPath, tomlContent);
+                StatusText = "[OpenSteamTool] Конфиг opensteamtool.toml сохранен";
+                MessageBox.Show("Файл opensteamtool.toml обновлен!", "Сохранено", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"[Ошибка TOML] {ex.Message}";
+            }
+        });
+
         public RelayCommand BrowseSteamPathCommand => new(() =>
         {
             var dlg = new OpenFolderDialog
             {
-                Title = "Выберите папку установки Steam",
+                Title = "Выберите директорию установки Steam",
                 InitialDirectory = SteamPath
             };
             if (dlg.ShowDialog() == true)
@@ -768,7 +934,12 @@ $@"""AppState""
 
         public RelayCommand ShowLibraryCommand => new(() => CurrentViewIndex = 0);
         public RelayCommand ShowStoreSearchCommand => new(() => CurrentViewIndex = 1);
-        public RelayCommand ShowSettingsCommand => new(() => CurrentViewIndex = 2);
+        public RelayCommand ShowOpenSteamToolCommand => new(() =>
+        {
+            CheckOpenSteamToolStatus();
+            CurrentViewIndex = 2;
+        });
+        public RelayCommand ShowSettingsCommand => new(() => CurrentViewIndex = 3);
 
         public RelayCommand RunStoreSearchCommand => new(async () => await SearchSteamStoreAsync(StoreSearchInput));
 
@@ -784,7 +955,7 @@ $@"""AppState""
                 string path = Path.Combine(dir, $"{appId}.lua");
                 await File.WriteAllTextAsync(path, $"-- SteamForge 2.0 Manifest\naddappid({appId})\n");
 
-                StatusText = $"[Успех] Создан манифест {appId}.lua";
+                StatusText = $"[Успех] Манифест {appId}.lua записан в {Path.GetFileName(dir)}";
                 StoreSearchInput = "";
                 CurrentViewIndex = 0;
                 ScanLuaManifests();
@@ -798,14 +969,14 @@ $@"""AppState""
 
             var res = MessageBox.Show(
                 $"Удалить файл манифеста \"{target.Title}\" ({target.AppId}.lua)?",
-                "Подтверждение удаления",
+                "Удаление",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
             if (res == MessageBoxResult.Yes)
             {
-                string dir = GetPluginDirectory();
-                string f1 = Path.Combine(dir, $"{target.AppId}.lua");
+                string f1 = target.LuaFilePath;
+                string dir = Path.GetDirectoryName(f1) ?? GetPluginDirectory();
                 string f2 = Path.Combine(dir, $"{target.AppId}.lua.disabled");
 
                 if (File.Exists(f1)) File.Delete(f1);
@@ -813,7 +984,7 @@ $@"""AppState""
 
                 AllGames.Remove(target);
                 DisplayedGames.Remove(target);
-                StatusText = $"[Удалено] {target.AppId}.lua стерт с диска";
+                StatusText = $"[Удалено] {target.AppId}.lua стерт";
                 IsGameMatrixOpen = false;
             }
         });
@@ -832,8 +1003,13 @@ $@"""AppState""
                 }
 
                 string exe = Path.Combine(SteamPath, "steam.exe");
-                if (File.Exists(exe)) Process.Start(exe);
-                StatusText = "[Steam] Клиент перезапущен!";
+                if (File.Exists(exe))
+                {
+                    var psi = new ProcessStartInfo { FileName = exe };
+                    if (EnableOnlineFix) psi.Arguments = "-onlinefix";
+                    Process.Start(psi);
+                }
+                StatusText = EnableOnlineFix ? "[Steam] Запущен с ключом -onlinefix" : "[Steam] Клиент перезапущен";
             }
             catch (Exception ex)
             {
@@ -849,7 +1025,7 @@ $@"""AppState""
                 string desk = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
                 string zipPath = Path.Combine(desk, $"SteamForge_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.zip");
                 ZipFile.CreateFromDirectory(pluginDir, zipPath);
-                StatusText = $"[Бэкап] Сохранен архив: {Path.GetFileName(zipPath)}";
+                StatusText = $"[Бэкап] Сохранен: {Path.GetFileName(zipPath)}";
             }
             catch (Exception ex)
             {
@@ -869,7 +1045,7 @@ $@"""AppState""
         public RelayCommand ToggleManifestStateCommand => new(() =>
         {
             if (SelectedGame == null) return;
-            string dir = GetPluginDirectory();
+            string dir = Path.GetDirectoryName(SelectedGame.LuaFilePath) ?? GetPluginDirectory();
             string normal = Path.Combine(dir, $"{SelectedGame.AppId}.lua");
             string disabled = Path.Combine(dir, $"{SelectedGame.AppId}.lua.disabled");
 
@@ -877,21 +1053,22 @@ $@"""AppState""
             {
                 if (File.Exists(normal)) File.Move(normal, disabled, true);
                 SelectedGame.IsEnabled = false;
-                StatusText = $"[Статус] Манифест {SelectedGame.AppId}.lua отключен (файл переименован в .disabled)";
+                SelectedGame.LuaFilePath = disabled;
+                StatusText = $"[Статус] {SelectedGame.AppId}.lua отключен (.disabled)";
             }
             else
             {
                 if (File.Exists(disabled)) File.Move(disabled, normal, true);
                 SelectedGame.IsEnabled = true;
-                StatusText = $"[Статус] Манифест {SelectedGame.AppId}.lua включен!";
+                SelectedGame.LuaFilePath = normal;
+                StatusText = $"[Статус] {SelectedGame.AppId}.lua включен";
             }
         });
 
         public RelayCommand SaveMatrixCommand => new(async () =>
         {
             if (SelectedGame == null) return;
-            string dir = GetPluginDirectory();
-            string path = Path.Combine(dir, $"{SelectedGame.AppId}.lua");
+            string path = SelectedGame.LuaFilePath;
 
             if (IsMatrixLuaTab)
             {
@@ -901,7 +1078,7 @@ $@"""AppState""
             else
             {
                 var sb = new System.Text.StringBuilder();
-                sb.AppendLine($"-- SteamForge 2.0 Манифест");
+                sb.AppendLine($"-- SteamForge 2.0 / OpenSteamTool");
                 sb.AppendLine($"-- Игра: {SelectedGame.Title} [{SelectedGame.AppId}]");
                 sb.AppendLine($"addappid({SelectedGame.AppId})");
 
